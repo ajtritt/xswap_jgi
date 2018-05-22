@@ -211,7 +211,6 @@ def read_func():
     Iterate over all containers
 
     """
-    cts = list_containers(CLIENT)
     for container in list_containers(CLIENT):
         stats = get_stats(container)
         meta = build_metadata(container)
@@ -220,5 +219,5 @@ def read_func():
 
 
 collectd.register_init(init_func)
-collectd.register_read(read_func, 1)
+collectd.register_read(read_func)
 collectd.register_config(config_func)
