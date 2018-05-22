@@ -73,6 +73,8 @@ def process_labels(values):
 
     """
     global LABEL
+    global list_containers
+    global build_metadata
     labels = values[:]
     _list = None
     _meta = None
@@ -213,7 +215,6 @@ def read_func():
     for container in list_containers(CLIENT):
         stats = get_stats(container)
         meta = build_metadata(container)
-        print("meta: %s" % str(meta))
         values = [stats[k] for k in TYPE_INSTS]
         collectd.Values(type='docker', type_instance=container.id, plugin='docker_stats', meta=meta).dispatch(values=values)
 
