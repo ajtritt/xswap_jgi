@@ -15,13 +15,14 @@ labels   module_id, user
 Written by Andrew Tritt, ajtritt@lbl.gov
 """
 import sys
-import docker
 import collectd
+import docker
 
 
 CLIENT = None
 CONFIG_OPTIONS = dict()
 LABEL = None
+TYPE_INSTS = [t[0] for t in collectd.get_dataset('docker')]
 
 
 def init_func():
@@ -72,7 +73,9 @@ def process_labels(values):
 
     """
     global LABEL
-    labels = node.values[:]
+    global list_containers
+    global build_metadata
+    labels = values[:]
     _list = None
     _meta = None
     if len(labels) == 1:
@@ -102,8 +105,9 @@ def config_func(config):
         labels: the
 
     """
+    global CONFIG_OPTIONS
     for node in config.children:
-        func = CONFIG_OPTIONS.get(node.key):
+        func = CONFIG_OPTIONS.get(node.key)
         if func:
             func(node.values)
 
@@ -194,6 +198,10 @@ def get_stats(container):
         "blk_out": blk_out,
         "net_in": net_in,
         "net_out": net_out,
+        "blk_in_rate": blk_in,
+        "blk_out_rate": blk_out,
+        "net_in_rate": net_in,
+        "net_out_rate": net_out,
     }
     return mystats
 
@@ -203,13 +211,14 @@ def read_func():
     Iterate over all containers
 
     """
+    cts = list_containers(CLIENT)
     for container in list_containers(CLIENT):
         stats = get_stats(container)
         meta = build_metadata(container)
-        for k, v in stats.items():
-            Values(type=k, plugin='docker_stats', meta=meta).dispatch(values=[v])
+        values = [stats[k] for k in TYPE_INSTS]
+        collectd.Values(type='docker', type_instance=container.id, plugin='docker_stats', meta=meta).dispatch(values=values)
 
 
 collectd.register_init(init_func)
-collectd.register_read(read_func)
+collectd.register_read(read_func, 1)
 collectd.register_config(config_func)

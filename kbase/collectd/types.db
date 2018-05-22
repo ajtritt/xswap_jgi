@@ -1,0 +1,1 @@
+docker                  max_mem:GAUGE:0:U, cpu_usage:GAUGE:0:U, blk_in:GAUGE:0:U, blk_out:GAUGE:0:U, blk_in_rate:DERIVE:0:U, blk_out_rate:DERIVE:0:U, net_in:GAUGE:0:U, net_out:GAUGE:0:U, net_in_rate:DERIVE:0:U,  net_out_rate:DERIVE:0:U, 
