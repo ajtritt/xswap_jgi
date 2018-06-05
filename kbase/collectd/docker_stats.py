@@ -81,10 +81,10 @@ def process_labels(values):
     if len(labels) == 1:
         LABEL = labels[0]
         def _list(client):
-            return client.containers.list(label=LABEL)
+            return client.containers.list(filters={'label':LABEL})
         def _meta(container):
             return {'container_id': container.id,
-                    LABEL: container.labels[label]}
+                    LABEL: container.labels[LABEL]}
     else:
         LABEL = labels
         def _list(client):
@@ -215,7 +215,7 @@ def read_func():
         stats = get_stats(container)
         meta = build_metadata(container)
         values = [stats[k] for k in TYPE_INSTS]
-        collectd.Values(type='docker', type_instance=container.id, plugin='docker_stats', meta=meta).dispatch(values=values)
+        collectd.Values(type='docker', type_instance=container.id, plugin='docker_stats', meta=meta).dispatch(values=values, meta=meta)
 
 
 collectd.register_init(init_func)
