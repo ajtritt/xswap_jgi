@@ -78,21 +78,13 @@ def process_labels(values):
     labels = values[:]
     _list = None
     _meta = None
-    if len(labels) == 1:
-        LABEL = labels[0]
-        def _list(client):
-            return client.containers.list(filters={'label':LABEL})
-        def _meta(container):
-            return {'container_id': container.id,
-                    LABEL: container.labels[LABEL]}
-    else:
-        LABEL = labels
-        def _list(client):
-            return [c for c in client.containers.list() if all(l in c.labels for l in LABEL)]
-        def _meta(container):
-            ret = {l: container.labels[l] for l in LABEL}
-            ret['container_id'] = container.id
-            return ret
+    LABEL = list(labels)
+    def _list(client):
+        return client.containers.list(filters={'label':LABEL})
+    def _meta(container):
+        ret = {l: container.labels[l] for l in LABEL}
+        ret['container_id'] = container.id
+        return ret
     list_containers = _list
     build_metadata = _meta
 
