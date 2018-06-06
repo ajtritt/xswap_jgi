@@ -14,15 +14,22 @@ labels   module_id, user
 
 Written by Andrew Tritt, ajtritt@lbl.gov
 """
-# import sys
 import collectd
 import docker
+from os.path import basename, splitext
 
 
 CLIENT = None
 CONFIG_OPTIONS = dict()
 LABEL = None
 TYPE_INSTS = [t[0] for t in collectd.get_dataset('docker')]
+
+
+log_tmpl = splitext(basename(__file__))[0] + " plugin: %s"
+
+
+def log(msg):
+    collectd.info(log_tmpl % msg)
 
 
 def init_func():
@@ -81,7 +88,7 @@ def process_labels(values):
     _list = None
     _meta = None
     LABEL = list(labels)
-    collectd.info("docker_stats plugin: Filtering containers based on label(s) %s" % str(LABEL))
+    log("Filtering containers based on label(s) %s" % str(LABEL))
 
     def _list(client):
         return client.containers.list(filters={'label': LABEL})
@@ -108,7 +115,7 @@ def config_func(config):
         if func:
             func(node.values)
         else:
-            collectd.info('docker_stats plugin: Unkown config key "%s"' & node.key)
+            log('Unkown config key "%s"' & node.key)
 
 
 def max_mem(stats):
@@ -214,7 +221,10 @@ def read_func():
         stats = get_stats(container)
         meta = build_metadata(container)
         values = [stats[k] for k in TYPE_INSTS]
-        collectd.Values(type='docker', type_instance=container.id, plugin='docker_stats', meta=meta).dispatch(values=values, meta=meta)
+        v = collectd.Values(type='docker',
+                            type_instance=container.id,
+                            plugin='docker_stats', meta=meta)
+        v.dispatch(values=values, meta=meta)
 
 
 collectd.register_init(init_func)
