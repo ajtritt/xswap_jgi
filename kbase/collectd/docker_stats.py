@@ -17,12 +17,13 @@ Written by Andrew Tritt, ajtritt@lbl.gov
 # import sys
 import collectd
 import docker
-
+import re
 
 CLIENT = None
 CONFIG_OPTIONS = dict()
 LABEL = None
 TYPE_INSTS = [t[0] for t in collectd.get_dataset('docker')]
+IMG_REGX = re.compile("'(.+)'")  # Regex for matching image name from image object
 
 
 def init_func():
@@ -62,9 +63,7 @@ def build_metadata(container):
     is listed in the collectd config file
 
     """
-    return {'container_id': container.id,
-            'container_image': container.image,
-            'container_name': container.name}
+    return {'container_id': container.id}
 
 
 @config('labels')
@@ -81,7 +80,7 @@ def process_labels(values):
     _list = None
     _meta = None
     LABEL = list(labels)
-    collectd.info("docker_stats plugin: Filtering containers based on label(s) %s" % str(LABEL))
+    collectd.info("docker_stats plugin: Filtering containers based on label(s) {0}".format(str(LABEL)))
 
     def _list(client):
         return client.containers.list(filters={'label': LABEL})
@@ -108,7 +107,7 @@ def config_func(config):
         if func:
             func(node.values)
         else:
-            collectd.info('docker_stats plugin: Unkown config key "%s"' & node.key)
+            collectd.info('docker_stats plugin: Unkown config key "{0}"'.format(node.key))
 
 
 def max_mem(stats):
@@ -214,7 +213,16 @@ def read_func():
         stats = get_stats(container)
         meta = build_metadata(container)
         values = [stats[k] for k in TYPE_INSTS]
-        collectd.Values(type='docker', type_instance=container.id, plugin='docker_stats', meta=meta).dispatch(values=values, meta=meta)
+        # Pack the image_name, container.name and container.short_id into the type_instance field
+        # Parse out the name:tag of the running image from the image object
+        # You can get the name but not tag of image from container attrs, so this
+        # seems to be easiest method
+        instance = {"image": IMG_REGX.search(str(container.image)).group(1),
+                    "name": container.name,
+                    "short_id": container.short_id}
+        type_instance = " ".join(["{0}={1}".format(k, v) for k, v in instance.items()])
+        collectd.Values(type='docker', type_instance=type_instance,
+                        plugin='docker_stats', meta=meta).dispatch(values=values, meta=meta)
 
 
 collectd.register_init(init_func)
