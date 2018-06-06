@@ -14,7 +14,7 @@ labels   module_id, user
 
 Written by Andrew Tritt, ajtritt@lbl.gov
 """
-import sys
+# import sys
 import collectd
 import docker
 
@@ -62,7 +62,9 @@ def build_metadata(container):
     is listed in the collectd config file
 
     """
-    return {'container_id': container.id}
+    return {'container_id': container.id,
+            'container_image': container.image,
+            'container_name': container.name}
 
 
 @config('labels')
@@ -79,8 +81,11 @@ def process_labels(values):
     _list = None
     _meta = None
     LABEL = list(labels)
+    collectd.info("docker_stats plugin: Filtering containers based on label(s) %s" % str(LABEL))
+
     def _list(client):
-        return client.containers.list(filters={'label':LABEL})
+        return client.containers.list(filters={'label': LABEL})
+
     def _meta(container):
         ret = {l: container.labels[l] for l in LABEL}
         ret['container_id'] = container.id
@@ -102,6 +107,8 @@ def config_func(config):
         func = CONFIG_OPTIONS.get(node.key)
         if func:
             func(node.values)
+        else:
+            collectd.info('docker_stats plugin: Unkown config key "%s"' & node.key)
 
 
 def max_mem(stats):
