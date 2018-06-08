@@ -171,7 +171,11 @@ def network(stats):
         a tuple of received bytes and transmitted bytes
 
     """
-    net = stats['networks']['eth0']
+    # Some containers don't have network stats, return 0 in that case
+    try:
+        net = stats['networks']['eth0']
+    except KeyError:
+        net = {'rx_bytes': 0, 'tx_bytes': 0}
     return net['rx_bytes'], net['tx_bytes']
 
 
@@ -214,10 +218,21 @@ def read_func():
         meta = build_metadata(container)
         values = [stats[k] for k in TYPE_INSTS]
         # Pack the image_name, container.name and container.short_id into the type_instance field
-        # Parse out the name:tag of the running image from the image object
-        # You can get the name but not tag of image from container attrs, so this
-        # seems to be easiest method
-        instance = {"image": IMG_REGX.search(str(container.image)).group(1),
+        try:
+            # Parse out the name:tag of the running image from the image object
+            # You can get the name but not tag of image from container attrs, so this
+            # seems to be easiest method
+            match = IMG_REGX.search(str(container.image))
+            # This should never happen where we have an econtainer.image  yet
+            # it did!
+            if match is not None:
+                image = match.group(1)
+            else:
+                image = str(container.attrs['Config']['Image'])
+        except AttributeError:
+            image = "unknown"
+
+        instance = {"image": image,
                     "name": container.name,
                     "short_id": container.short_id}
         type_instance = " ".join(["{0}={1}".format(k, v) for k, v in instance.items()])
