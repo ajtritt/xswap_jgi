@@ -23,7 +23,7 @@ CLIENT = None
 CONFIG_OPTIONS = dict()
 LABEL = None
 TYPE_INSTS = [t[0] for t in collectd.get_dataset('docker')]
-IMG_REGX = re.compile("'(.+)'")  # Regex for matching image name from image object
+IMG_REGX = re.compile('\'([\w/:]+)')  # Regex for matching image name from image object
 
 
 def init_func():
