@@ -218,19 +218,15 @@ def read_func():
         meta = build_metadata(container)
         values = [stats[k] for k in TYPE_INSTS]
         # Pack the image_name, container.name and container.short_id into the type_instance field
-        try:
-            # Parse out the name:tag of the running image from the image object
-            # You can get the name but not tag of image from container attrs, so this
-            # seems to be easiest method
-            match = IMG_REGX.search(str(container.image))
-            # This should never happen where we have an econtainer.image  yet
-            # it did!
-            if match is not None:
-                image = match.group(1)
-            else:
-                image = str(container.attrs['Config']['Image'])
-        except AttributeError:
-            image = "unknown"
+        # Parse out the name:tag of the running image from the image object
+        # You can get the name but not tag of image from container attrs, so this
+        # seems to be easiest method
+        match = IMG_REGX.search(str(container.image))
+        # This should never happen where we fail a match on container.image yet it did!
+        if match is not None:
+            image = match.group(1)
+        else:
+            image = str(container.attrs['Config']['Image'])
 
         instance = {"image": image,
                     "name": container.name,
