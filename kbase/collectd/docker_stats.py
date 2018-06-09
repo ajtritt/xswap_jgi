@@ -14,16 +14,23 @@ labels   module_id, user
 
 Written by Andrew Tritt, ajtritt@lbl.gov
 """
-# import sys
 import collectd
 import docker
 import re
+from os.path import basename, splitext
 
 CLIENT = None
 CONFIG_OPTIONS = dict()
 LABEL = None
 TYPE_INSTS = [t[0] for t in collectd.get_dataset('docker')]
 IMG_REGX = re.compile('\'([\w/:.-]+)')  # Regex for matching image name from image object
+
+
+log_tmpl = splitext(basename(__file__))[0] + " plugin: %s"
+
+
+def log(msg):
+    collectd.info(log_tmpl % msg)
 
 
 def init_func():
@@ -80,7 +87,7 @@ def process_labels(values):
     _list = None
     _meta = None
     LABEL = list(labels)
-    collectd.info("docker_stats plugin: Filtering containers based on label(s) {0}".format(str(LABEL)))
+    log("Filtering containers based on label(s) %s" % str(LABEL))
 
     def _list(client):
         return client.containers.list(filters={'label': LABEL})
@@ -107,7 +114,7 @@ def config_func(config):
         if func:
             func(node.values)
         else:
-            collectd.info('docker_stats plugin: Unkown config key "{0}"'.format(node.key))
+            log('Unkown config key "%s"' & node.key)
 
 
 def max_mem(stats):
@@ -228,8 +235,10 @@ def read_func():
                     "name": container.name,
                     "short_id": container.short_id}
         type_instance = " ".join(["{0}={1}".format(k, v) for k, v in instance.items()])
-        collectd.Values(type='docker', type_instance=type_instance,
-                        plugin='docker_stats', meta=meta).dispatch(values=values, meta=meta)
+        v = collectd.Values(type='docker',
+                            type_instance=type_instance,
+                            plugin='docker_stats', meta=meta)
+        v.dispatch(values=values, meta=meta)
 
 
 collectd.register_init(init_func)
