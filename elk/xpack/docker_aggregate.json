@@ -1,0 +1,36 @@
+{
+  "input" : {
+    "search" : {
+      "request" : {
+        "indices" : [ "docker" ],
+        "types" : [ "event" ],
+        "body" : {
+          "size": 0,
+          "query": {"range": {"@timestamp": {"gte": "now-10m"}}},
+          "aggs": {
+            "containers": {
+              "terms": {"field": "type_instance.keyword"},
+              "aggs": {
+                "most_recent": {
+                  "top_hits": {
+                    "sort": [{"@timestamp": {"order": "desc"}}],
+                    "size" : 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "trigger" : {
+    "schedule" : {
+      "interval" : "10m"
+    }
+  },
+  "condition" : {
+    "always" : {}
+  }
+}
+
