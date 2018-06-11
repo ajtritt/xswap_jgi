@@ -4,52 +4,17 @@ from pprint import pprint
 from datetime import datetime, timedelta
 import time
 
-es = Elasticsearch()
+host = [ "elasticsearch1.chicago.kbase.us:9200" ]
+es = Elasticsearch(host)
 
-docker_index = "docker"
-
-body = {
-    "size": 0,
-    "aggs": {
-        "containers": {
-            "terms": {
-                "field": "type_instance.keyword"
-            },
-            "aggs": {
-                "last_update": {"max": {"field": "@timestamp"}},
-                "max_mem": {"max": {"field": "max_mem"}},
-                "cpu_usage": {"max": {"field": "cpu_usage"}},
-                "net_in": {"max": {"field": "net_in"}},
-                "net_out": {"max": {"field": "net_out"}},
-                "blk_in": {"max": {"field": "blk_in"}},
-                "blk_out": {"max": {"field": "blk_out"}},
-                "max_net_in_rate": {"max": {"field": "net_in_rate"}},
-                "max_net_out_rate": {"max": {"field": "net_out_rate"}},
-                "max_blk_in_rate": {"max": {"field": "blk_in_rate"}},
-                "max_blk_out_rate": {"max": {"field": "blk_out_rate"}}
-            }
-        }
-    }
-}
-aggs = { "most_recent": {
-                    "top_hits": {
-                        "sort": [
-                            {
-                                "@timestamp": {
-                                    "order": "desc"
-                                }
-                            }
-                        ],
-                        "size" : 1
-       }}}
-
+docker_index = "<logstash-collectd_docker-{now/d}>"
 
 body = {
     "size": 0,
     "query": {"range": {"@timestamp": {"gte": "now-10m"}}},
     "aggs": {
         "containers": {
-            "terms": {"field": "type_instance.keyword"},
+            "terms": {"field": "container_id.keyword"},
             "aggs": {
                 "most_recent": {
                     "top_hits": {
@@ -63,9 +28,7 @@ body = {
 }
 
 res = es.search(index=docker_index, body=body)
-pprint(res)
 
-res['aggregations']['containers']['buckets']
-
-
-
+for b in res['aggregations']['containers']['buckets']:
+    rec = b['most_recent']['hits']['hits'][0]['_source']
+    print("{docker_image}\t{container_id}\t{container_name}".format(**rec))
