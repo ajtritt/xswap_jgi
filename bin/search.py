@@ -44,10 +44,9 @@ aggs = { "most_recent": {
        }}}
 
 
-date = (time.time() - 600) * 1000
 body = {
     "size": 0,
-    "query": {"range": {"@timestamp": {"gte": date}}},
+    "query": {"range": {"@timestamp": {"gte": "now-10m"}}},
     "aggs": {
         "containers": {
             "terms": {"field": "type_instance.keyword"},
