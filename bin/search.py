@@ -10,11 +10,11 @@ es = Elasticsearch(host)
 docker_index = "<logstash-collectd_docker-{now/d}>"
 
 body = {
-    "size": 0,
+    "size": 10000,
     "query": {"range": {"@timestamp": {"gte": "now-10m"}}},
     "aggs": {
         "containers": {
-            "terms": {"field": "container_id.keyword"},
+            "terms": {"field": "container_id.keyword", "size": 10000},
             "aggs": {
                 "most_recent": {
                     "top_hits": {
@@ -26,9 +26,10 @@ body = {
         }
     }
 }
-
 res = es.search(index=docker_index, body=body)
 
+fmt = "{docker_image}\t{container_id}\t{container_name}"
+print(fmt.replace('{', '').replace('}', ''))
 for b in res['aggregations']['containers']['buckets']:
     rec = b['most_recent']['hits']['hits'][0]['_source']
-    print("{docker_image}\t{container_id}\t{container_name}".format(**rec))
+    print(fmt.format(**rec))
