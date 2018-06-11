@@ -16,13 +16,14 @@ Written by Andrew Tritt, ajtritt@lbl.gov
 """
 import collectd
 import docker
+import re
 from os.path import basename, splitext
-
 
 CLIENT = None
 CONFIG_OPTIONS = dict()
 LABEL = None
 TYPE_INSTS = [t[0] for t in collectd.get_dataset('docker')]
+IMG_REGX = re.compile('\'([\w/:.-]+)')  # Regex for matching image name from image object
 
 
 log_tmpl = splitext(basename(__file__))[0] + " plugin: %s"
@@ -69,9 +70,7 @@ def build_metadata(container):
     is listed in the collectd config file
 
     """
-    return {'container_id': container.id,
-            'container_image': container.image,
-            'container_name': container.name}
+    return {'container_id': container.id}
 
 
 @config('labels')
@@ -179,7 +178,11 @@ def network(stats):
         a tuple of received bytes and transmitted bytes
 
     """
-    net = stats['networks']['eth0']
+    # Some containers don't have network stats, return 0 in that case
+    try:
+        net = stats['networks']['eth0']
+    except KeyError:
+        net = {'rx_bytes': 0, 'tx_bytes': 0}
     return net['rx_bytes'], net['tx_bytes']
 
 
@@ -221,8 +224,19 @@ def read_func():
         stats = get_stats(container)
         meta = build_metadata(container)
         values = [stats[k] for k in TYPE_INSTS]
+        # Pack the image_name, container.name and container.short_id into the type_instance field
+        # Parse out the name:tag of the running image from the image object
+        # You can get the name but not tag of image from container attrs, so this
+        # seems to be easiest method
+        match = IMG_REGX.search(str(container.image))
+        image = match.group(1)
+
+        instance = {"image": image,
+                    "name": container.name,
+                    "short_id": container.short_id}
+        type_instance = " ".join(["{0}={1}".format(k, v) for k, v in instance.items()])
         v = collectd.Values(type='docker',
-                            type_instance=container.id,
+                            type_instance=type_instance,
                             plugin='docker_stats', meta=meta)
         v.dispatch(values=values, meta=meta)
 
