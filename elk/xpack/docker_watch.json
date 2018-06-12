@@ -26,21 +26,27 @@
   },
   "trigger" : {
     "schedule" : {
-      "interval" : "10m"
+      "interval" : "1m"
     }
   },
   "condition" : {
     "always" : {}
   },
   "actions" : {
-    "index_payload" : { 
-      "transform" : { 
+    "log_payload" : {
+      "logging" : {
+        "text" : "PAYLOAD: {{ctx.payload}}",
+        "level" : "info"
+      }
+    },
+    "log_results" : {
+      "transform" : {
         "chain": [
-          { "script": "List ret = []; for (def x : ctx.aggregations.containers.buckets) { ret.add(x.most_recent.hits.hits.0._source); } return [ '_doc': ret] " }
+          { "script": "List ret = []; for (def x : ctx.payload.aggregations.containers.buckets) { ret.add(x.most_recent.hits.hits.0._source.type_instance); } return [ '_doc_test': ret]; " }
         ]
       },
       "index" : {
-        "index" : "container-performance", 
+        "index" : "container-performance",
         "doc_type" : "container-stats"
       }
     }
