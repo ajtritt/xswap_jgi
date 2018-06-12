@@ -36,9 +36,9 @@
     "index_payload" : { 
       "transform" : { 
         "chain": [
-          { "script": "def ret = ArrayList(); for (x:aggregations.containers.buckets) { ret.add(x.most_recent.hits.hits.0._source); }; return [ _doc: ret] " }
+          { "script": "List ret = []; for (def x : ctx.aggregations.containers.buckets) { ret.add(x.most_recent.hits.hits.0._source); } return [ '_doc': ret] " }
         ]
-      }
+      },
       "index" : {
         "index" : "container-performance", 
         "doc_type" : "container-stats"
