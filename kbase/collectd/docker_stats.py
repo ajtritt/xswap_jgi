@@ -229,7 +229,10 @@ def read_func():
         # You can get the name but not tag of image from container attrs, so this
         # seems to be easiest method
         match = IMG_REGX.search(str(container.image))
-        image = match.group(1)
+        if match is None:
+            image = "untagged"
+        else:
+            image = match.group(1)
 
         instance = {"image": image,
                     "name": container.name,
